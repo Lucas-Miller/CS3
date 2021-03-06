@@ -10,6 +10,8 @@
 #include <vector>
 #include <deque>
 #include <string>
+#include <algorithm>
+#include <numeric>
 
 using std::cin; using std::cout; using std::endl;
 using std::string;
@@ -36,11 +38,11 @@ int main(){
 
    // assign random weight and color to apples in the crate
    // replace with generate()
-   for(auto it = crate.begin(); it != crate.end(); ++it){
-      it->weight = minWeight + 
-	           static_cast<double>(rand())/RAND_MAX*(maxWeight - minWeight);
-      it->color = rand() % 2 == 1 ? "green" : "red";
-   }
+   std::generate(crate.begin(), crate.end(), [=]() {
+      Apples a; 
+		a.weight = minWeight + static_cast<double>(rand()) / RAND_MAX*(maxWeight - minWeight);
+		a.color = rand() % 2 == 1 ? "green" : "red"; 
+		return a;});
 
  
    cout << "Enter weight to find: ";
@@ -48,34 +50,31 @@ int main(){
    cin >> toFind;
 
    // count_if()
-   int cnt = 0;
-   for(auto it = crate.cbegin(); it != crate.cend(); ++it) 
-      if(it->weight > toFind) ++cnt;
+   int cnt = std::count_if(crate.cbegin(), crate.cend(), [toFind](Apples a) {return a.weight > toFind;});
+
 
    cout << "There are " << cnt << " apples heavier than " 
 	<< toFind << " oz" <<  endl;
 
    // find_if()
    cout << "at positions ";
-   for(int i=0; i < size; ++i)
-      if(crate[i].weight > toFind)
-	 cout << i << ", ";
+   auto itr = std::find_if(crate.cbegin(), crate.cend(), [toFind](Apples a) {return a.weight > toFind;});
+   while(itr != crate.cend()) {
+      cout << itr - crate.cbegin() << ", ";
+      itr = std::find_if((itr + 1), crate.cend(), [toFind](Apples a) {return a.weight > toFind;});
+   }
    cout << endl;
 
-
    // max_element()
-   double heaviest = crate[0].weight;
-   for(int i=1; i < size; ++i)
-      if(crate[i].weight > heaviest) heaviest = crate[i].weight; 
-   cout << "Heaviest apple weighs: " << heaviest << " oz" << endl;
+   itr = std::max_element(crate.cbegin(), crate.cend(), [](Apples a, Apples b) {return a.weight > b.weight;});
+   cout << "Heaviest apple weighs: " << itr->weight << " oz" << endl;
+
 
 
    // for_each() or accumulate()
-   double sum = 0;
-   for(int i=0; i < size; ++i)
-      sum += crate[i].weight;
+   double sum;
+   std::for_each(crate.cbegin(), crate.cend(), [&sum](Apples a) {sum += a.weight;});
    cout << "Total apple weight is: " << sum << " oz" << endl;
-
 
    // transform();
    cout << "How much should they grow: ";
