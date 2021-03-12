@@ -29,8 +29,6 @@ struct Apples{
 
 bool less_than(const Apples& a, const double& maxWeight){ return a.weight < maxWeight;};
 
-
-
 int main(){
    srand(time(nullptr));
    const double minWeight = 8.;
@@ -50,14 +48,12 @@ int main(){
 		a.color = rand() % 2 == 1 ? "green" : "red"; 
 		return a;});
 
- 
    cout << "Enter weight to find: ";
    double toFind;
    cin >> toFind;
 
    // count_if()
    int cnt = std::count_if(crate.cbegin(), crate.cend(), [toFind](Apples a) {return a.weight > toFind;});
-
 
    cout << "There are " << cnt << " apples heavier than " 
 	<< toFind << " oz" <<  endl;
@@ -74,8 +70,6 @@ int main(){
    // max_element()
    itr = std::max_element(crate.cbegin(), crate.cend(), [](Apples a, Apples b) {return a.weight > b.weight;});
    cout << "Heaviest apple weighs: " << itr->weight << " oz" << endl;
-
-
 
    // for_each() or accumulate()
    double sum;
@@ -97,7 +91,6 @@ int main(){
    double minAccept;
    cin >> minAccept;
    crate.erase(std::remove_if(crate.begin(), crate.end(), [minAccept](Apples &a){return a.weight < minAccept;}), crate.end());
-
 
    // bubble sort, replace with sort()
    std::sort(crate.begin(), crate.end(), [](Apples a, Apples b){return a.weight < b.weight;});
@@ -134,21 +127,6 @@ int main(){
       std::advance(deqitr, 1);
       ++i;
    }
-
-   class Jam {
-      private:
-         double jam_weight = 0;
-      public:
-         Jam(){};
-         void operator()(vector<Apples> jamCrate, double max_weight) {
-            for(auto &itr : jamCrate) {
-               if(itr.weight < max_weight)
-                  jam_weight += itr.weight;
-            }
-         }
-
-         double get_weight() {return jam_weight;};
-   };
 
    // putting all small green apples in a jam
    // use a binder to create a functor with configurable max weight
