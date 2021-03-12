@@ -2,6 +2,9 @@
 // non STL-algorithm code to be replaced by algorthms
 // Mikhail Nesterenko
 // 10/03/2018
+//////////////////////////////////
+// Modified by Lucas Miller
+// 2/28/2021
 
 
 #include <iostream>
@@ -12,6 +15,7 @@
 #include <string>
 #include <algorithm>
 #include <numeric>
+#include <functional>
 
 using std::cin; using std::cout; using std::endl;
 using std::string;
@@ -22,6 +26,8 @@ struct Apples{
    string color;  // red or green
    void print() const { cout << color << ", " <<  weight << endl; }
 };
+
+bool less_than(const Apples& a, const double& maxWeight){ return a.weight < maxWeight;};
 
 
 
@@ -80,58 +86,38 @@ int main(){
    cout << "How much should they grow: ";
    double toGrow;
    cin >> toGrow;
-   for(int i=0; i < crate.size(); ++i)
-      crate[i].weight += toGrow;
+   std::transform(crate.begin(),crate.end(), crate.begin(), [toGrow](Apples a){Apples temp; 
+                                                                                 temp.color = a.color;
+                                                                                 temp.weight = a.weight + toGrow;
+                                                                                 return temp;
+                                                                                 });
 
    // remove_if()
    cout << "Input minimum acceptable weight: ";
    double minAccept;
    cin >> minAccept;
-   
-   for(auto it=crate.begin(); it != crate.end(); )
-      if(it->weight < minAccept)
-	 it = crate.erase(it);
-      else
-	 ++it;
-	 
-   cout << "removed " << size - crate.size() << " elements" << endl;
+   crate.erase(std::remove_if(crate.begin(), crate.end(), [minAccept](Apples &a){return a.weight < minAccept;}), crate.end());
 
 
    // bubble sort, replace with sort()
-   bool swapped;
-   do{
-      swapped = false;
-      for(int i=0; i < crate.size()-1; ++i)
-	 if(crate[i].weight > crate[i+1].weight){
-	    std::swap(crate[i], crate[i+1]);
-	    swapped = true;
-	 }
-   }while(swapped);
-
+   std::sort(crate.begin(), crate.end(), [](Apples a, Apples b){return a.weight < b.weight;});
 
    // moving all red apples from crate to peck
    // remove_copy_if() with back_inserter()/front_inserter() or equivalents
    deque<Apples> peck;
-   for(auto it=crate.begin(); it != crate.end();)
-      if(it->color == "red"){
-	 peck.push_front(std::move(*it));
-	 it=crate.erase(it);
-      }else
-	 ++it;
+   std::remove_copy_if(crate.begin(), crate.end(), std::back_inserter(peck), [](Apples &a){return a.color != "red";});
+
+   auto toRemove = std::remove_if(crate.begin(), crate.end(), [](Apples &a){return a.color == "red";});
+   crate.erase(toRemove, crate.end());
 
    // for_each() possibly
    cout << "apples in the create"<< endl;
-   for(const auto &e: crate) {
-      e.print(); 
-   }
-
+   std::for_each(crate.begin(), crate.end(), [](Apples a){if(a.color != "")a.print();});
    cout << endl;
 
    // for_each() possibly
    cout << "apples in the peck"<< endl;
-   for(const auto &e: peck) {
-      e.print();
-   } 
+   std::for_each(peck.begin(), peck.end(), [](Apples a){if(a.color != "")a.print();});
 
 
    // prints every "space" apple in the peck
@@ -141,30 +127,48 @@ int main(){
 
    // replace with advance()/next()/distance()
    // no iterator arithmetic
-   auto it=peck.cbegin(); int i = 0;   
-   while(it != peck.cend()){
-      if(i == space){
-	 it->print();
-	 i=0;
-      }
-      ++i; 
-      ++it;
+   int i = 1;
+   auto deqitr = peck.begin();
+   while(deqitr != peck.end()){
+      if(deqitr->color != "" && i%3 == 0)deqitr->print();
+      std::advance(deqitr, 1);
+      ++i;
    }
 
+   class Jam {
+      private:
+         double jam_weight = 0;
+      public:
+         Jam(){};
+         void operator()(vector<Apples> jamCrate, double max_weight) {
+            for(auto &itr : jamCrate) {
+               if(itr.weight < max_weight)
+                  jam_weight += itr.weight;
+            }
+         }
+
+         double get_weight() {return jam_weight;};
+   };
 
    // putting all small green apples in a jam
    // use a binder to create a functor with configurable max weight
    // accumulate() or count_if() then remove_if()
    const double weightToJam = 10.0;
    double jamWeight = 0; 
-   for(auto it=crate.begin(); it != crate.end();)
-      if(it->weight < weightToJam){
-	 jamWeight += it->weight;
-	 it=crate.erase(it);
-      }else
-	 ++it;
+
+   using namespace std::placeholders; 
+   auto binder = std::bind(less_than, _1, weightToJam);
+
+   int appleCount = 0;
+   auto iterator = crate.begin();
+   while (std::count_if(crate.begin(), crate.end(), binder) != appleCount)
+       if (iterator->weight < weightToJam) {
+         jamWeight += iterator->weight;
+	      ++appleCount;
+	   }
+
+   auto removeIt = std::remove_if(crate.begin(), crate.end(), binder);
+   crate.erase(removeIt, crate.end());
 
    cout << "Weight of jam is: " << jamWeight << endl;
-
 }
-
